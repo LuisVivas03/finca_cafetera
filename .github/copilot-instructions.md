@@ -7,12 +7,14 @@
 ### Directory Structure
 
 - **`app/autoload.php`** - Autocargador PSR-4 que resuelve clases desde `models/` y `controllers/`
-- **`app/config/database.php`** - Configuración de conexión MySQL (estática, sin env file)
+- **`app/config/database.php`** - Configuración de conexión MySQL con variables de entorno
+- **`app/helpers/EnvLoader.php`** - Cargador de variables de entorno desde `.env`
 - **`app/models/`** - Lógica de negocio con patrón **Singleton para Database**
 - **`app/controllers/`** - Manejo de peticiones y orquestación de modelos
 - **`app/views/`** - Componentes reutilizables (solo `header.php` y formularios)
 - **`public/`** - Puntos de entrada (entry points) que requieren autenticación
 - **`database/`** - Schema SQL inicial
+- **`.env`** - Variables de entorno (NO versionado, usar `.env.example` como referencia)
 
 ### Key Architectural Decisions
 
@@ -28,14 +30,22 @@
    - `Database.php` implementa singleton con lazy initialization
    - Todas las conexiones usan la misma instancia de PDO
    - Conexión se establece en constructor privado al primer acceso
+   - Credenciales cargadas desde variables de entorno via `DatabaseConfig::getConfig()`
 
-3. **Authentication Model**:
+3. **Environment Variables** (`.env`):
+
+   - Variables: `MYSQLHOST`, `MYSQLPORT`, `MYSQLUSER`, `MYSQLPASSWORD`, `MYSQLDATABASE`
+   - Cargadas automáticamente por `EnvLoader::load()` en `database.php`
+   - Valores por defecto: localhost:3306, root sin contraseña, base `finca_cafetera`
+   - Ver `ENV_GUIDE.md` para documentación completa
+
+4. **Authentication Model**:
 
    - Session-based con `$_SESSION['usuario']` almacenando `[id, username, nombre_completo, rol]`
    - Verificación de autenticación en `AuthController::checkAuth()` redirige a login
    - Contraseñas hasheadas con `password_hash(PASSWORD_DEFAULT)`
 
-4. **View Layer**:
+5. **View Layer**:
    - Vistas son archivos PHP directamente en `public/` (no existe template engine)
    - Componente `header.php` incluido via `include` y usa `$usuario` de sesión
    - Formularios separados: `cliente_form.php`, `empleados/form.php`, etc.
@@ -176,6 +186,17 @@ Models con `$softDelete = true` (default):
 - Incluye X-Frame-Options, CSP, X-XSS-Protection, etc.
 
 Ver `SECURITY_GUIDE.md` para documentación completa y ejemplos.
+
+## Environment Variables
+
+### Configuration with EnvLoader
+
+- Variables almacenadas en archivo `.env` (NO versionado en git)
+- `EnvLoader::load()` carga automáticamente en constructor de `DatabaseConfig`
+- Acceso: `EnvLoader::get('MYSQLHOST', 'default_value')`
+- Verificar existencia: `EnvLoader::has('MYSQLHOST')`
+- Valores esperados: `MYSQLHOST`, `MYSQLPORT`, `MYSQLUSER`, `MYSQLPASSWORD`, `MYSQLDATABASE`
+- Ver `ENV_GUIDE.md` para guía de configuración completa
 
 ## Tips for Agents
 
